@@ -159,9 +159,9 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
         autofocus: true,
         child: LayoutBuilder(builder: (context, constraints) {
           final compact = constraints.maxWidth < 600;
-          final paged = mobile &&
-              MediaQuery.orientationOf(context) == Orientation.portrait &&
-              constraints.maxHeight > 320;
+          // Swipeable category pages on compact (phone / Duo outer) only —
+          // wide windows keep a single filterable grid (Duo inner / tablet).
+          final paged = mobile && compact && constraints.maxHeight > 320;
           final width = constraints.maxWidth.clamp(0.0, 1560.0);
           final inset =
               (constraints.maxWidth - width) / 2 + (compact ? 16.0 : 32.0);
@@ -404,21 +404,22 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
 
   Widget _grid(List<CollectedBangumi> entries, double contentWidth,
       {required CollectType? type}) {
-    final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
-    final spacing = portrait ? (contentWidth < 600 ? 8.0 : 12.0) : 16.0;
+    // Column count follows window width so Duo fold/unfold (and Split View)
+    // adapt; do not lock portrait to a fixed 3 columns.
+    final compact = contentWidth < 600;
+    final spacing = compact ? 8.0 : (contentWidth < 840 ? 12.0 : 16.0);
     final scaler = MediaQuery.textScalerOf(context);
     final textScale = (scaler.scale(14) / 14).clamp(1.0, double.infinity);
     final minWidth =
-        (contentWidth < 600 ? 136.0 : 172.0) + 32 * (textScale - 1);
-    final columns = portrait
-        ? 3
-        : ((contentWidth + spacing) / (minWidth + spacing)).floor().clamp(1, 6);
+        (compact ? 136.0 : 172.0) + 32 * (textScale - 1);
+    final columns =
+        ((contentWidth + spacing) / (minWidth + spacing)).floor().clamp(1, 6);
     final width = (contentWidth - spacing * (columns - 1)) / columns;
     return SliverGrid.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: spacing,
-        mainAxisSpacing: portrait ? 12 : spacing,
+        mainAxisSpacing: compact ? 12 : spacing,
         mainAxisExtent: _CollectPosterCard.extent(width, scaler,
             showRating: widget.showRating, showStatus: type == null),
       ),

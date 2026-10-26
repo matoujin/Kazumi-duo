@@ -1,0 +1,143 @@
+---
+name: "build"
+
+on:
+  push:
+    paths-ignore:
+      - 'static/**'
+      - '**.md'
+      - '.gitignore'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'fastlane/**'
+  workflow_dispatch:
+
+env:
+  DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
+  DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
+  KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
+  KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
+
+jobs:
+  flutter-test:
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        shell: bash
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+        shell: bash
+      - name: Run Flutter tests
+        run: flutter test
+        shell: bash
+
+  flutter-analyze:
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        shell: bash
+      - name: Analyze Flutter project
+        run: flutter analyze --no-fatal-infos --fatal-warnings
+        shell: bash
+
+  flutter-build-ios:
+    needs: [flutter-test, flutter-analyze]
+    name: "Release for iOS"
+    runs-on: "macos-latest"
+    permissions:
+      contents: write
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+      - run: flutter pub get
+      - name: Install native build tools
+        run: brew install cmake ninja
+      - name: Select newest Xcode
+        run: |
+          # Prefer the newest installed Xcode (ideally 27.1+) for a real
+          # iOS 27.1 SDK build; scripts/ios_patch_sdk_version.sh still
+          # rewrites DT*/LC_BUILD_VERSION when the runner is older.
+          TARGET="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n1 || true)"
+          if [ -n "$TARGET" ]; then
+            echo "Selecting $TARGET"
+            sudo xcode-select -s "$TARGET/Contents/Developer"
+          fi
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphone || true
+      - name: Build IPA
+        run: >-
+          flutter build ios --release --no-codesign
+          --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+          --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+          --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+          --dart-define=KAZUMI_KEY=$KAZUMI_KEY
+      - name: Create IPA
+        run: |
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+          # Report iOS 27.1 SDK so Duo / LiveContainer use native full-screen.
+          bash scripts/ios_patch_sdk_version.sh Payload/Runner.app
+          find Payload/Runner.app/Frameworks -type d -name "*.framework" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements {} \;
+          # Re-sign main binary after vtool rewrite (ad-hoc for sideload).
+          codesign --force --sign - --preserve-metadata=identifier,entitlements Payload/Runner.app/Runner || true
+          codesign --force --sign - --deep --preserve-metadata=identifier,entitlements Payload/Runner.app || true
+          zip -q -r Kazumi_ios_canary_no_sign.ipa Payload
+      - name: Publish duo-latest prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="$(awk '/^version:/ { print $2; exit }' pubspec.yaml | cut -d+ -f1)"
+          CANARY="Kazumi_ios_canary_no_sign.ipa"
+          DUO_NAMED="Kazumi_duo_${VERSION}_ios27.1.ipa"
+          cp "$CANARY" "$DUO_NAMED"
+          INSTALL_URL="https://github.com/${{ github.repository }}/releases/download/duo-latest/${DUO_NAMED}"
+          NOTES="Unsigned iOS IPA for iPhone Duo / LiveContainer (iOS 27.1 SDK metadata).
+
+          Direct install in LiveContainer →「从链接安装」:
+          ${INSTALL_URL}
+
+          Also attached: ${CANARY}
+          Commit: ${{ github.sha }}"
+          if gh release view duo-latest >/dev/null 2>&1; then
+            gh release upload duo-latest "$CANARY" "$DUO_NAMED" --clobber
+            gh release edit duo-latest --prerelease --notes "$NOTES" || true
+          else
+            gh release create duo-latest "$CANARY" "$DUO_NAMED" \
+              --prerelease \
+              --title "Kazumi Duo latest (unsigned iOS)" \
+              --notes "$NOTES"
+          fi
+          echo "Published: ${INSTALL_URL}"
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios_outputs
+          path: Kazumi_ios_*.ipa

@@ -21,14 +21,16 @@ class DisplayModeService {
         return;
       }
 
-      // Restore system orientation on exit, including an existing landscape.
+      // Explicit fullscreen locks landscape for immersive playback. Clearing
+      // the preference on exit restores Info.plist orientations so iPhone Duo
+      // fold/unfold (and Split View) can resize freely again.
       await _attempt(() => SystemChrome.setPreferredOrientations(
             fullscreen
                 ? [
                     DeviceOrientation.landscapeLeft,
                     DeviceOrientation.landscapeRight
                   ]
-                : [],
+                : const <DeviceOrientation>[],
           ));
     });
   }

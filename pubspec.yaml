@@ -1,7 +1,7 @@
 name: kazumi
 description: "A new Flutter project."
 publish_to: "none"
-version: 2.4.2+20402
+version: 2.4.2-duo2+20403
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -138,7 +138,7 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   android: false
-  ios: true
+  ios: false
   web: false
   color_ios: "#ffffff"
   color_dark_ios: "#212121"

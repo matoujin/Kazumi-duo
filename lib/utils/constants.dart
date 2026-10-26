@@ -52,16 +52,74 @@ final PageTransitionsTheme settingsPageTransitionsTheme = PageTransitionsTheme(
 /// **It's only a suggestion since not every device meet the breakpoint requirement.
 /// You need to build layout with some more judgements.**
 ///
+/// Drive decisions from the **current window** ([MediaQuery] /
+/// [LayoutBuilder] constraints), never from hardware display size or a fixed
+/// device orientation. Foldables (e.g. iPhone Duo) resize the Flutter view
+/// live between outer and inner displays without restarting the app.
+///
 /// Some example device(portrait) width x height:
 ///
 /// * iPhone SE3: 375 x 667
 /// * iPhone 16: 393 x 852
+/// * iPhone Duo outer (folded 5.4"): ~466 x 678
+/// * iPhone Duo inner (unfolded 7.6"): ~626 x 890
 /// * iPad Pro 11-inch: 834 x 1210
 /// * HW MATE60 Pro: 387.7 x 836.9
 /// * OHOS in floating window: 387.7 x 631.7 or 218.1
 class LayoutBreakpoint {
   static const Map<String, double> compact = {'width': 600, 'height': 480};
   static const Map<String, double> medium = {'width': 840, 'height': 900};
+
+  /// Compact phone chrome (outer Duo display, narrow Split View, etc.).
+  static bool isCompactWidth(double width) => width < compact['width']!;
+
+  /// Prefer [NavigationRail] over bottom [NavigationBar] when the window is
+  /// at least compact width (covers unfolded Duo / tablets in any orientation).
+  static bool useNavigationRail(double width) => width >= compact['width']!;
+
+  /// Bottom sheet vs side panel for player sheets (danmaku source, etc.).
+  static bool useBottomSheet(double width) => isCompactWidth(width);
+
+  /// Bangumi / anime poster grid columns from the current window width.
+  static int animeGridColumns(double width) {
+    if (width > medium['width']!) return 6;
+    if (width > compact['width']!) return 5;
+    if (width > 480) return 4;
+    if (width > 360) return 3;
+    return 2;
+  }
+
+  /// Video immerses (hides stacked episode tabs) when the user is in
+  /// fullscreen / PiP, or the window is landscape-shaped.
+  static bool videoFillsWindow({
+    required double width,
+    required double height,
+    required bool fullscreen,
+    required bool isPip,
+  }) =>
+      fullscreen || isPip || width > height;
+
+  /// Episode side panel beside the player when immersing and there is room.
+  static bool videoHasSidePanel({
+    required double width,
+    required double height,
+    required bool fullscreen,
+    required bool isPip,
+    required bool hasPanel,
+  }) {
+    if (!hasPanel || isPip) return false;
+    if (!videoFillsWindow(
+      width: width,
+      height: height,
+      fullscreen: fullscreen,
+      isPip: isPip,
+    )) {
+      return false;
+    }
+    // Phone landscape (~800×375) and Duo / tablet windows all qualify once
+    // immersing; keep a small floor so tiny Stage Manager panes stay stacked.
+    return width >= 480;
+  }
 }
 
 /// 随机UA列表

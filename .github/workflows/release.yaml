@@ -424,6 +424,15 @@
           - run: flutter pub get
           - name: Install native build tools
             run: brew install cmake ninja
+          - name: Select newest Xcode
+            run: |
+              TARGET="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n1 || true)"
+              if [ -n "$TARGET" ]; then
+                echo "Selecting $TARGET"
+                sudo xcode-select -s "$TARGET/Contents/Developer"
+              fi
+              xcodebuild -version
+              xcodebuild -showsdks | grep -i iphone || true
           - name: Build IPA
             run: >-
               flutter build ios --release --no-codesign
@@ -435,7 +444,10 @@
             run: |
               mkdir Payload
               cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+              bash scripts/ios_patch_sdk_version.sh Payload/Runner.app
               find Payload/Runner.app/Frameworks -type d -name "*.framework" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements {} \;
+              codesign --force --sign - --preserve-metadata=identifier,entitlements Payload/Runner.app/Runner || true
+              codesign --force --sign - --deep --preserve-metadata=identifier,entitlements Payload/Runner.app || true
               zip -q -r Kazumi_ios_${{ env.tag }}_no_sign.ipa Payload
           - name: Upload iOS build
             uses: actions/upload-artifact@v4

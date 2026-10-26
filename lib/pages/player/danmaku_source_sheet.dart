@@ -19,6 +19,7 @@ import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/constants.dart';
 
 const _episodeToolThreshold = 25;
 const _episodeSegmentSize = 100;
@@ -38,7 +39,8 @@ Future<void> showDanmakuSourceSheet(
         onBeforeApply: onBeforeApply,
       );
 
-  if (MediaQuery.orientationOf(context) == Orientation.portrait) {
+  // Width-based: unfolded Duo / tablets get a side panel even in portrait.
+  if (LayoutBreakpoint.useBottomSheet(MediaQuery.sizeOf(context).width)) {
     await showAdaptiveBottomSheet<void>(
       context: context,
       maxHeightFactor: 0.88,

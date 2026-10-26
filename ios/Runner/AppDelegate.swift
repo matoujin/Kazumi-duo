@@ -79,8 +79,13 @@ import app_links
         playerViewController.player = player
         playerViewController.videoGravity = AVLayerVideoGravity.resizeAspect
 
-        // Use UIScene API instead of deprecated keyWindow
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+        // Prefer the foreground-active scene (important if multitasking / Duo
+        // ever exposes more than one UIWindowScene).
+        let windowScene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+            ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+        guard let windowScene,
               let rootViewController = windowScene.windows.first?.rootViewController else {
             return
         }
