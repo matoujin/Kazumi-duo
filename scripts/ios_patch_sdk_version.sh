@@ -16,8 +16,9 @@ SDK_VERSION="27.1"
 # LC_BUILD_VERSION sdk encoding: major<<16 | minor<<8 | patch  → 27.1.0
 SDK_HEX="0x001B0100"
 XCODE_VERSION="2710"
-XCODE_BUILD="27B100"
-PLATFORM_BUILD="25B5062a"
+# Official iPhoneOS27.1.sdk / Xcode 27.1 build identifiers.
+XCODE_BUILD="27A9275"
+PLATFORM_BUILD="24A94232"
 
 if [[ ! -d "$APP" ]]; then
   echo "error: Runner.app not found at $APP" >&2
@@ -48,11 +49,15 @@ plist_set "DTXcode" string "$XCODE_VERSION"
 plist_set "DTXcodeBuild" string "$XCODE_BUILD"
 plist_set "DTCompiler" string "com.apple.compilers.llvm.clang.1_0"
 plist_set "DTPlatformBuild" string "$PLATFORM_BUILD"
-# Multitasking / foldable live resize (must not require exclusive full screen).
+# iOS 27.1 requires the key to be absent (not set to false).
 if /usr/libexec/PlistBuddy -c "Print :UIRequiresFullScreen" "$PLIST" >/dev/null 2>&1; then
-  /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen false" "$PLIST"
-else
-  /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool false" "$PLIST"
+  /usr/libexec/PlistBuddy -c "Delete :UIRequiresFullScreen" "$PLIST"
+  echo "Removed UIRequiresFullScreen from Info.plist"
+fi
+# Ensure scene multitasking opt-in survives packaging.
+plist_set "UIApplicationSceneManifest:UIApplicationSupportsMultipleScenes" bool true
+if ! /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" >/dev/null 2>&1; then
+  /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "$PLIST"
 fi
 
 patch_macho() {
