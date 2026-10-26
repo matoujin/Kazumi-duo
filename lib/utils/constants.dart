@@ -73,9 +73,16 @@ class LayoutBreakpoint {
   /// Compact phone chrome (outer Duo display, narrow Split View, etc.).
   static bool isCompactWidth(double width) => width < compact['width']!;
 
-  /// Prefer [NavigationRail] over bottom [NavigationBar] when the window is
-  /// at least compact width (covers unfolded Duo / tablets in any orientation).
-  static bool useNavigationRail(double width) => width >= compact['width']!;
+  /// Primary destinations always use a trailing [NavigationRail] (Duo outer
+  /// ~466pt, inner ~626pt, tablets, Split View). Width is still the live
+  /// window width so callers stay size-class based; the bottom [NavigationBar]
+  /// path for these four tabs is retired.
+  static bool useNavigationRail(double width) {
+    // Keep the parameter so call sites continue to pass MediaQuery /
+    // LayoutBuilder width (not UIScreen.bounds or idiom).
+    assert(width >= 0);
+    return true;
+  }
 
   /// Bottom sheet vs side panel for player sheets (danmaku source, etc.).
   static bool useBottomSheet(double width) => isCompactWidth(width);

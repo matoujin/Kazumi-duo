@@ -232,16 +232,9 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   List<Widget> buildActions() {
-    // Rail already hosts search; show the app-bar action only on compact width.
-    final showSearchInAppBar =
-        !LayoutBreakpoint.useNavigationRail(MediaQuery.sizeOf(context).width);
+    // Search lives on the trailing NavigationRail (all widths, including Duo
+    // outer); keep a single entry point and only show history / window chrome.
     return <Widget>[
-      if (showSearchInAppBar)
-        IconButton(
-          tooltip: '搜索',
-          onPressed: () => context.pushNamed('/search/'),
-          icon: const Icon(Icons.search),
-        ),
       IconButton(
         tooltip: '历史记录',
         onPressed: () => context.pushNamed('/settings/history/'),

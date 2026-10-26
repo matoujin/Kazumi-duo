@@ -3,13 +3,20 @@ import 'package:kazumi/utils/constants.dart';
 
 void main() {
   group('LayoutBreakpoint', () {
-    test('useNavigationRail follows compact width, not orientation', () {
-      // iPhone Duo outer (folded) ≈ 466pt wide → bottom nav
-      expect(LayoutBreakpoint.useNavigationRail(466), isFalse);
-      // iPhone Duo inner (unfolded) ≈ 626pt wide → rail even in portrait
+    test('useNavigationRail is always true for primary destinations', () {
+      // Duo outer (~466) and inner (~626) both use the trailing rail;
+      // width is still passed from live LayoutBuilder / MediaQuery sizes.
+      expect(LayoutBreakpoint.useNavigationRail(466), isTrue);
       expect(LayoutBreakpoint.useNavigationRail(626), isTrue);
       expect(LayoutBreakpoint.useNavigationRail(600), isTrue);
-      expect(LayoutBreakpoint.useNavigationRail(599), isFalse);
+      expect(LayoutBreakpoint.useNavigationRail(320), isTrue);
+    });
+
+    test('isCompactWidth still tracks live window width', () {
+      expect(LayoutBreakpoint.isCompactWidth(466), isTrue);
+      expect(LayoutBreakpoint.isCompactWidth(599), isTrue);
+      expect(LayoutBreakpoint.isCompactWidth(600), isFalse);
+      expect(LayoutBreakpoint.isCompactWidth(626), isFalse);
     });
 
     test('useBottomSheet mirrors compact width', () {

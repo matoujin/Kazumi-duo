@@ -108,13 +108,15 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             _handleSystemBack(context);
           }
         },
-        // Window width (not orientation): iPhone Duo unfolded portrait is
-        // compact+ wide and should use the rail; folded outer stays bottom nav.
+        // Always trailing NavigationRail (Duo outer + inner). Compact width
+        // only thins labels so the 5.4" outer screen keeps usable content.
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return LayoutBreakpoint.useNavigationRail(constraints.maxWidth)
-                ? _sideMenu(context, _selectedIndex)
-                : _bottomMenu(context, _selectedIndex);
+            return _sideMenu(
+              context,
+              _selectedIndex,
+              compact: LayoutBreakpoint.isCompactWidth(constraints.maxWidth),
+            );
           },
         ),
       ),
@@ -139,39 +141,11 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     );
   }
 
-  Widget _bottomMenu(BuildContext context, int selectedIndex) {
-    return Scaffold(
-      body: _outlet(context),
-      bottomNavigationBar: NavigationBar(
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: '推荐',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.timeline),
-            icon: Icon(Icons.timeline_outlined),
-            label: '时间表',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
-            label: '追番',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings),
-            label: '我的',
-          ),
-        ],
-        selectedIndex: selectedIndex,
-        onDestinationSelected: _selectDestination,
-      ),
-    );
-  }
-
-  Widget _sideMenu(BuildContext context, int selectedIndex) {
+  Widget _sideMenu(
+    BuildContext context,
+    int selectedIndex, {
+    required bool compact,
+  }) {
     // Rail on the trailing (right) edge; round the content edge that meets it.
     const borderRadius = BorderRadius.only(
       topRight: Radius.circular(16),
@@ -190,14 +164,19 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
           ),
           NavigationRail(
             backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            // Narrow outer display: icons-only rail to preserve content width.
+            minWidth: compact ? 56 : 72,
             groupAlignment: 1,
             leading: FloatingActionButton(
               elevation: 0,
               heroTag: null,
+              mini: compact,
               onPressed: () => context.pushNamed('/search/'),
               child: const Icon(Icons.search),
             ),
-            labelType: NavigationRailLabelType.selected,
+            labelType: compact
+                ? NavigationRailLabelType.none
+                : NavigationRailLabelType.selected,
             destinations: const <NavigationRailDestination>[
               NavigationRailDestination(
                 selectedIcon: Icon(Icons.home),
