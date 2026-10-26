@@ -172,14 +172,16 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   }
 
   Widget _sideMenu(BuildContext context, int selectedIndex) {
+    // Rail on the trailing (right) edge; round the content edge that meets it.
     const borderRadius = BorderRadius.only(
-      topLeft: Radius.circular(16),
-      bottomLeft: Radius.circular(16),
+      topRight: Radius.circular(16),
+      bottomRight: Radius.circular(16),
     );
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       body: Row(
         children: [
+          Expanded(child: _outlet(context, borderRadius: borderRadius)),
           EmbeddedNativeControlArea(
             child: NavigationRail(
               backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
@@ -217,7 +219,6 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
               onDestinationSelected: _selectDestination,
             ),
           ),
-          Expanded(child: _outlet(context, borderRadius: borderRadius)),
         ],
       ),
     );
