@@ -56,9 +56,9 @@
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
-		<!-- iOS 27.1 / iPhone Duo: multiple scenes + no UIRequiresFullScreen key. -->
+		<!-- FlutterImplicitEngineDelegate is single-engine; keep multiple scenes off. -->
 		<key>UIApplicationSupportsMultipleScenes</key>
-		<true/>
+		<false/>
 		<key>UISceneConfigurations</key>
 		<dict>
 			<key>UIWindowSceneSessionRoleApplication</key>

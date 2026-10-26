@@ -79,9 +79,6 @@ if ! /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" >/dev/null 2>&1
   /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "$PLIST"
 fi
 
-# Ensure scene multitasking opt-in survives packaging.
-plist_set "UIApplicationSceneManifest:UIApplicationSupportsMultipleScenes" bool true
-
 # Drop compiled LaunchScreen.storyboardc if Flutter/Xcode still copied it.
 rm -rf "${APP}/Base.lproj/LaunchScreen.storyboardc"
 rm -rf "${APP}/LaunchScreen.storyboardc"
