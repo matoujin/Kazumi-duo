@@ -3,6 +3,8 @@ name: "build"
 
 on:
   push:
+    # Only main may overwrite the public duo-latest LiveContainer IPA.
+    branches: [main]
     paths-ignore:
       - 'static/**'
       - '**.md'
