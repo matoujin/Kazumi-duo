@@ -244,6 +244,18 @@
           - run: flutter pub get
           - name: Install native build tools
             run: brew install cmake ninja
+          - name: Select newest Xcode
+            run: |
+              # Prefer the newest installed Xcode (ideally 27.1+) for a real
+              # iOS 27.1 SDK build; scripts/ios_patch_sdk_version.sh still
+              # rewrites DT*/LC_BUILD_VERSION when the runner is older.
+              TARGET="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n1 || true)"
+              if [ -n "$TARGET" ]; then
+                echo "Selecting $TARGET"
+                sudo xcode-select -s "$TARGET/Contents/Developer"
+              fi
+              xcodebuild -version
+              xcodebuild -showsdks | grep -i iphone || true
           - name: Build IPA
             run: >-
               flutter build ios --release --no-codesign
@@ -255,7 +267,12 @@
             run: |
               mkdir Payload
               cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+              # Report iOS 27.1 SDK so Duo / LiveContainer use native full-screen.
+              bash scripts/ios_patch_sdk_version.sh Payload/Runner.app
               find Payload/Runner.app/Frameworks -type d -name "*.framework" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements {} \;
+              # Re-sign main binary after vtool rewrite (ad-hoc for sideload).
+              codesign --force --sign - --preserve-metadata=identifier,entitlements Payload/Runner.app/Runner || true
+              codesign --force --sign - --deep --preserve-metadata=identifier,entitlements Payload/Runner.app || true
               zip -q -r Kazumi_ios_canary_no_sign.ipa Payload
           - name: Upload iOS build
             uses: actions/upload-artifact@v4

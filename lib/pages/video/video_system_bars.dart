@@ -63,11 +63,13 @@ class _VideoSystemBarsState extends State<VideoSystemBars> with RouteAware {
       unawaited(DisplayModeService.releaseSystemBars(this));
     } else if (!widget.isPip) {
       // PiP keeps the full-window preference until its original metrics return.
-      final landscape =
-          MediaQuery.orientationOf(context) == Orientation.landscape;
+      // Use window aspect (not DeviceOrientation) so Duo fold/unfold updates
+      // immersion without waiting for an orientation event.
+      final size = MediaQuery.sizeOf(context);
+      final immersed = widget.fullscreen || size.width > size.height;
       unawaited(DisplayModeService.setSystemBarsHidden(
         owner: this,
-        hidden: widget.fullscreen || landscape,
+        hidden: immersed,
       ));
     }
   }

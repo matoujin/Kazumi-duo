@@ -101,7 +101,7 @@ class _SearchResultGrid extends StatelessWidget {
     final titleHeight = textHeight('番剧\n番剧', titleStyle);
     final metadataHeight = math.max(_SearchResultCard.ratingIconSize,
         textHeight('0.0 0000', textTheme.labelMedium!));
-    final columns = math.max(2, (width / 180).floor());
+    final columns = math.max(1, (width / 180).floor());
     final cardWidth = (width - (columns - 1) * 12) / columns;
 
     return SliverGrid.builder(

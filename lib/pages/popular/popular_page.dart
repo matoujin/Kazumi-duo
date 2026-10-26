@@ -124,13 +124,8 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   Widget contentGrid(List<BangumiItem> bangumiList) {
-    int crossCount = 3;
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
-      crossCount = 5;
-    }
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
-      crossCount = 6;
-    }
+    final width = MediaQuery.sizeOf(context).width;
+    final crossCount = LayoutBreakpoint.animeGridColumns(width);
     return SliverPadding(
       padding: const EdgeInsets.all(8),
       sliver: SliverGrid(
@@ -142,7 +137,7 @@ class _PopularPageState extends State<PopularPage> {
           // 列数
           crossAxisCount: crossCount,
           mainAxisExtent:
-              MediaQuery.of(context).size.width / crossCount / 0.65 +
+              width / crossCount / 0.65 +
                   MediaQuery.textScalerOf(context).scale(32.0),
         ),
         delegate: SliverChildBuilderDelegate(
@@ -237,8 +232,11 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   List<Widget> buildActions() {
+    // Rail already hosts search; show the app-bar action only on compact width.
+    final showSearchInAppBar =
+        !LayoutBreakpoint.useNavigationRail(MediaQuery.sizeOf(context).width);
     return <Widget>[
-      if (MediaQuery.of(context).orientation == Orientation.portrait)
+      if (showSearchInAppBar)
         IconButton(
           tooltip: '搜索',
           onPressed: () => context.pushNamed('/search/'),

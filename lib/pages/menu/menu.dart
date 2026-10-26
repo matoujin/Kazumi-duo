@@ -6,6 +6,7 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key, required this.location});
@@ -107,11 +108,13 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             _handleSystemBack(context);
           }
         },
-        child: OrientationBuilder(
-          builder: (context, orientation) {
-            return orientation == Orientation.portrait
-                ? _bottomMenu(context, _selectedIndex)
-                : _sideMenu(context, _selectedIndex);
+        // Window width (not orientation): iPhone Duo unfolded portrait is
+        // compact+ wide and should use the rail; folded outer stays bottom nav.
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return LayoutBreakpoint.useNavigationRail(constraints.maxWidth)
+                ? _sideMenu(context, _selectedIndex)
+                : _bottomMenu(context, _selectedIndex);
           },
         ),
       ),

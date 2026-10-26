@@ -789,9 +789,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     if (videoPageController.isPip) {
       return compact ? const Text('    ') : const SizedBox.shrink();
     }
+    // On phones, landscape already immerses via window aspect — hide the
+    // redundant enter control. On wide windows (unfolded Duo / tablet) keep
+    // the button so users can still lock/unlock explicit fullscreen.
+    final wideWindow = MediaQuery.sizeOf(context).width >= 600;
     if (!isDesktop() &&
         widget.fillsWindow &&
-        !videoPageController.isFullscreen) {
+        !videoPageController.isFullscreen &&
+        !wideWindow) {
       return const SizedBox.shrink();
     }
     return IconButton(

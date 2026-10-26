@@ -105,9 +105,15 @@ class VideoSidePanelState extends State<VideoSidePanel>
             );
           },
           child: SizedBox(
-            // Keep space outside the panel for dismissal.
-            width: math.min(constraints.maxWidth * 0.9,
-                (constraints.maxWidth / 3).clamp(320.0, 420.0)),
+            // Keep space outside the panel for dismissal. Soften the min width
+            // on narrow landscape / Duo hinge layouts so the player stays usable.
+            width: math.min(
+              constraints.maxWidth * 0.9,
+              (constraints.maxWidth / 3).clamp(
+                math.min(280.0, constraints.maxWidth * 0.45),
+                420.0,
+              ),
+            ),
             height: constraints.maxHeight,
             child: Material(
               color: Theme.of(context).colorScheme.surface,

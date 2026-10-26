@@ -43,6 +43,9 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Allow multitasking / iPhone Duo live fold↔unfold resize (no letterbox). -->
+	<key>UIRequiresFullScreen</key>
+	<false/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -56,6 +59,7 @@
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
+		<!-- Single scene; Duo fold/unfold resizes the existing window scene. -->
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 		<key>UISceneConfigurations</key>
