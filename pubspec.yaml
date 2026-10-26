@@ -138,7 +138,7 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   android: false
-  ios: true
+  ios: false
   web: false
   color_ios: "#ffffff"
   color_dark_ios: "#212121"
