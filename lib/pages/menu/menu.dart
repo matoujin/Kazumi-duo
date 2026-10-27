@@ -162,18 +162,15 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
               child: _outlet(context, borderRadius: borderRadius),
             ),
           ),
+          // No leading controls: iOS 27.1 Duo draws a vertical system status
+          // bar over the top ~40% of the right edge, which would cover any
+          // NavigationRail.leading FAB. Destinations stay bottom-aligned;
+          // search sits in trailing (below them) in the thumb zone.
           NavigationRail(
             backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
             // Narrow outer display: icons-only rail to preserve content width.
             minWidth: compact ? 56 : 72,
             groupAlignment: 1,
-            leading: FloatingActionButton(
-              elevation: 0,
-              heroTag: null,
-              mini: compact,
-              onPressed: () => context.pushNamed('/search/'),
-              child: const Icon(Icons.search),
-            ),
             labelType: compact
                 ? NavigationRailLabelType.none
                 : NavigationRailLabelType.selected,
@@ -201,6 +198,17 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             ],
             selectedIndex: selectedIndex,
             onDestinationSelected: _selectDestination,
+            trailing: Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: FloatingActionButton(
+                elevation: 0,
+                heroTag: null,
+                mini: compact,
+                tooltip: '搜索',
+                onPressed: () => context.pushNamed('/search/'),
+                child: const Icon(Icons.search),
+              ),
+            ),
           ),
         ],
       ),

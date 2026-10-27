@@ -232,9 +232,14 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   List<Widget> buildActions() {
-    // Search lives on the trailing NavigationRail (all widths, including Duo
-    // outer); keep a single entry point and only show history / window chrome.
+    // AppBar sits in the content pane (left of the rail), clear of Duo's
+    // right-edge vertical system bar. Search is also on the rail trailing.
     return <Widget>[
+      IconButton(
+        tooltip: '搜索',
+        onPressed: () => context.pushNamed('/search/'),
+        icon: const Icon(Icons.search),
+      ),
       IconButton(
         tooltip: '历史记录',
         onPressed: () => context.pushNamed('/settings/history/'),
