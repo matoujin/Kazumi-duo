@@ -68,8 +68,7 @@ class BangumiApi {
         "type": [2],
         "tag": ["日本"],
         "air_date": [">=${dateRange[0]}", "<${dateRange[1]}"],
-        "rank": [">0", "<=99999"],
-        "nsfw": true
+        "rank": [">0", "<=99999"]
       }
     };
     try {
@@ -156,8 +155,7 @@ class BangumiApi {
         "filter": {
           "type": [2],
           "tag": ["日本"],
-          "rank": [">$rank", "<=1050"],
-          "nsfw": false
+          "rank": [">$rank", "<=1050"]
         },
       };
     } else {
@@ -167,8 +165,7 @@ class BangumiApi {
         "filter": {
           "type": [2],
           "tag": [tag],
-          "rank": [">$rank", "<=99999"],
-          "nsfw": false
+          "rank": [">$rank", "<=99999"]
         },
       };
     }
@@ -281,11 +278,11 @@ class BangumiApi {
             ? [">0", "<=99999"]
             : [">=0", "<=99999"];
 
+    // Omit nsfw. false keeps only non-R18, true keeps only R18.
     final filter = <String, dynamic>{
       "type": [2],
       "tag": tags,
-      "rank": rankFilter,
-      "nsfw": false
+      "rank": rankFilter
     };
 
     if (dateRange?.isValid == true) {

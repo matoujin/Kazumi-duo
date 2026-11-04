@@ -75,15 +75,24 @@ abstract class _PopularController with Store {
     }
     isLoadingMore = true;
     var tag = currentTag;
+    final offset = bangumiList.length;
     var result = _bangumiMirrorEnabled
         ? await BangumiApi.getBangumiMirrorPopularSubjects(
             tag: tag,
-            offset: bangumiList.length,
+            offset: offset,
           )
         : await BangumiApi.getBangumiList(
             rank: Random().nextInt(8000) + 1,
             tag: tag,
           );
+    // The signed mirror cache has no 里番 list. An empty first page falls
+    // back to search, which no longer excludes NSFW.
+    if (result.isEmpty && _bangumiMirrorEnabled && offset == 0) {
+      result = await BangumiApi.getBangumiList(
+        rank: Random().nextInt(8000) + 1,
+        tag: tag,
+      );
+    }
     bangumiList.addAll(result);
     isLoadingMore = false;
     isTimeOut = bangumiList.isEmpty;
