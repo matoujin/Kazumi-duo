@@ -1,12 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/request/config/bangumi_mirror_route.dart';
 import 'package:kazumi/request/core/ech_adapter.dart';
 import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/network/rules_mirror.dart';
+import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
 
 class BangumiAccelerationInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    if (options.extra[bangumiBypassMirrorRewriteExtra] == true) {
+      options.requireEch();
+      handler.next(options);
+      return;
+    }
     final uri = options.uri;
     if (ApiEndpoints.bangumiPublicApiHosts.contains(uri.host)) {
       switch (BangumiAcceleration.current) {
@@ -17,10 +24,13 @@ class BangumiAccelerationInterceptor extends Interceptor {
           options.queryParameters = {};
           options.requireEch();
         case BangumiAcceleration.mirror:
+          final origin = bangumiMirrorOrigin(
+            credentialsPresent: hasBangumiMirrorCredentials,
+            method: options.method,
+            path: uri.path,
+          );
           options.path =
-              ApiEndpoints.bangumiMirrorDomain +
-              uri.path +
-              (uri.hasQuery ? '?${uri.query}' : '');
+              origin + uri.path + (uri.hasQuery ? '?${uri.query}' : '');
           options.queryParameters = {};
       }
     }
