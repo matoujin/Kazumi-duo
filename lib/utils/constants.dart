@@ -270,6 +270,7 @@ final List<String> defaultAnimeTags = const [
   '偶像',
   '治愈',
   '异世界',
+  '里番',
 ];
 
 // 播放器默认快捷键
