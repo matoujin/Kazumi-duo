@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/request/config/bangumi_mirror_route.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
@@ -23,23 +25,65 @@ class BangumiClient {
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await DioFactory.bangumiDio.get(
+      final first = await _sendGet(
         url,
         queryParameters: queryParameters,
-        options: Options(
-          headers: _headers(
-            requiresAuth: requiresAuth,
-            accessToken: accessToken,
-            url: url,
-            method: 'GET',
-          ),
-        ),
+        requiresAuth: requiresAuth,
+        accessToken: accessToken,
         cancelToken: cancelToken,
       );
-      return response.data;
+      if (!_shouldRescueUnsignedCommentBody(url, first.data)) {
+        return first.data;
+      }
+      KazumiLogger().i(
+        'Bangumi mirror: unsigned host has no next comments, retry official next API with ECH',
+      );
+    } on DioException catch (e) {
+      if (!_shouldRescueUnsignedCommentError(url, e)) {
+        throw await NetworkErrorMapper.mapException(e);
+      }
+      KazumiLogger().i(
+        'Bangumi mirror: unsigned host rejected next comments, retry official next API with ECH',
+      );
+    }
+
+    try {
+      final rescued = await _sendGet(
+        url,
+        queryParameters: queryParameters,
+        requiresAuth: requiresAuth,
+        accessToken: accessToken,
+        cancelToken: cancelToken,
+        extra: const {bangumiBypassMirrorRewriteExtra: true},
+      );
+      return rescued.data;
     } on DioException catch (e) {
       throw await NetworkErrorMapper.mapException(e);
     }
+  }
+
+  Future<Response<dynamic>> _sendGet(
+    String url, {
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = false,
+    String? accessToken,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? extra,
+  }) {
+    return DioFactory.bangumiDio.get<dynamic>(
+      url,
+      queryParameters: queryParameters,
+      options: Options(
+        headers: _headers(
+          requiresAuth: requiresAuth,
+          accessToken: accessToken,
+          url: url,
+          method: 'GET',
+        ),
+        extra: extra,
+      ),
+      cancelToken: cancelToken,
+    );
   }
 
   Future<dynamic> post(
@@ -104,20 +148,44 @@ class BangumiClient {
   }
 
   bool _shouldSignProtectedMirrorRequest(String url, String method) {
+    if (!hasBangumiMirrorCredentials) {
+      return false;
+    }
     final uri = Uri.parse(url);
     if (BangumiAcceleration.current != BangumiAcceleration.mirror ||
         !ApiEndpoints.bangumiPublicApiHosts.contains(uri.host)) {
       return false;
     }
-    final path = uri.path;
-    if (method == 'POST' && path == '/v0/search/subjects') {
-      return true;
-    }
-    if (method != 'GET') {
+    return isSignatureProtectedBangumiRequest(method, uri.path);
+  }
+
+  bool _unsignedCommentRescueEligible(String url) {
+    if (hasBangumiMirrorCredentials) {
       return false;
     }
-    return path.startsWith('/p1/subjects/') && path.endsWith('/comments') ||
-        path.startsWith('/p1/episodes/') && path.endsWith('/comments') ||
-        path.startsWith('/p1/characters/') && path.endsWith('/comments');
+    if (BangumiAcceleration.current != BangumiAcceleration.mirror) {
+      return false;
+    }
+    final uri = Uri.parse(url);
+    return ApiEndpoints.bangumiPublicApiHosts.contains(uri.host) &&
+        isBangumiNextCommentPath(uri.path);
+  }
+
+  bool _shouldRescueUnsignedCommentBody(String url, dynamic data) {
+    return _unsignedCommentRescueEligible(url) &&
+        isUnsignedMirrorCommentMiss(data);
+  }
+
+  bool _shouldRescueUnsignedCommentError(String url, DioException error) {
+    if (error.requestOptions.extra[bangumiBypassMirrorRewriteExtra] == true) {
+      return false;
+    }
+    if (!_unsignedCommentRescueEligible(url)) {
+      return false;
+    }
+    if (error.response?.statusCode == 404) {
+      return true;
+    }
+    return isUnsignedMirrorCommentMiss(error.response?.data);
   }
 }
